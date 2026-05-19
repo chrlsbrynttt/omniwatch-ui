@@ -1,3 +1,5 @@
+import StatRing from './components/StatRing'
+
 function App() {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -16,6 +18,10 @@ function App() {
 
           {/* Stat Rings */}
           <div className="flex gap-4">
+           <StatRing label="Steps" value="8,432" target="10,000" color="border-green-500" />
+           <StatRing label="Calories" value="420" target="600" color="border-orange-500" />
+           <StatRing label="Heart Rate" value="72" target="120" color="border-red-500" />
+          </div>
 
             {/* Steps */}
             <div className="w-16 h-16 rounded-full bg-gray-800 border-4 border-green-500 flex items-center justify-center">
