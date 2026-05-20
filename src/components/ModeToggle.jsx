@@ -4,7 +4,7 @@ function ModeToggle({ currentMode, onModeChange }) {
   return (
     <button
       onClick={() => onModeChange(nextMode)}
-      className="flex items-center gap-1 bg-gray-700 hover:bg-gray-600 active:scale-95 transition-all duration-150 text-white text-xs font-medium px-3 py-1.5 rounded-full border border-blue"
+      className="bg-blue-600 hover:bg-blues-700 active:scale-95 transition-all duration-150 text-white text-xs font-medium px-3 py-1.5 rounded-full"
     >
       {label}
     </button>
