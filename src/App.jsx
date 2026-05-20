@@ -3,8 +3,8 @@ import WatchFrame from './components/WatchFrame'
 import TimeDisplay from './components/TimeDisplay'
 import StopwatchWidget from './components/StopwatchWidget'
 import StatRing from './components/StatRing'
+import ModeToggle from './components/ModeToggle'   // ← import the new component
 
-// ← formatTime goes OUTSIDE the component, above everything
 function formatTime(cs) {
   const min = Math.floor(cs / 6000)
   const sec = Math.floor((cs % 6000) / 100)
@@ -13,21 +13,19 @@ function formatTime(cs) {
 }
 
 function App() {
-  const currentMode = 'stopwatch'
+  // ← currentMode is now state, not a const
+  const [currentMode, setCurrentMode] = useState('clock')
 
-  // all state at the top
   const [time, setTime] = useState(new Date())
   const [elapsed, setElapsed] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
   const [lapTimes, setLapTimes] = useState([])
 
-  // all handlers below state
   const handleStart = () => setIsRunning(true)
   const handleStop  = () => setIsRunning(false)
   const handleReset = () => { setIsRunning(false); setElapsed(0); setLapTimes([]) }
   const handleLap   = () => setLapTimes(prev => [...prev, formatTime(elapsed)])
 
-  // all useEffects below handlers
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(id)
@@ -39,10 +37,12 @@ function App() {
     return () => clearInterval(id)
   }, [isRunning])
 
-  // return starts here — only JSX inside
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center">
       <WatchFrame>
+        {/* ← ModeToggle sits here, inside WatchFrame, above everything else */}
+        <ModeToggle currentMode={currentMode} onModeChange={setCurrentMode} />
+
         {currentMode === 'clock' && (
           <TimeDisplay
             hours={time.getHours() % 12 || 12}
