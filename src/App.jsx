@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'   // ← add this
 import WatchFrame from './components/WatchFrame'
 import TimeDisplay from './components/TimeDisplay'
 import StopwatchWidget from './components/StopwatchWidget'
@@ -5,11 +6,23 @@ import StatRing from './components/StatRing'
 
 function App() {
   const currentMode = 'clock'
+  const [time, setTime] = useState(new Date())   // ← state at top level
+
+  useEffect(() => {                              // ← hook at top level, NOT inside JSX
+    const id = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center">
       <WatchFrame>
         {currentMode === 'clock' && (
-          <TimeDisplay hours="22" minutes="42" seconds="05" format="12" />
+          <TimeDisplay                           // ← live values, not hardcoded strings
+            hours={time.getHours() % 12 || 12}
+            minutes={String(time.getMinutes()).padStart(2, '0')}
+            seconds={String(time.getSeconds()).padStart(2, '0')}
+            format="12"
+          />
         )}
         <div className="flex gap-4">
           <StatRing label="Steps" value="8,432" target="10,000" color="border-green-500" />
