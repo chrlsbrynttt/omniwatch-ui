@@ -1,45 +1,74 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import WatchFrame from './components/WatchFrame'
 import TimeDisplay from './components/TimeDisplay'
 import StopwatchWidget from './components/StopwatchWidget'
 import StatRing from './components/StatRing'
 import ModeToggle from './components/ModeToggle'
 
-function formatTime(cs) {
-  const min = Math.floor(cs / 6000)
-  const sec = Math.floor((cs % 6000) / 100)
-  const cent = cs % 100
-  return `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(cent).padStart(2,'0')}`
+function formatTime(ms) {
+  const min = Math.floor(ms / 60000)
+  const sec = Math.floor((ms % 60000) / 1000)
+  const milli = Math.floor((ms % 1000) / 10)
+  return `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(milli).padStart(2,'0')}`
 }
 
 function App() {
+  // ← two refs: one for the interval ID, one for the true elapsed value
+  const intervalRef = useRef(null)
+  const elapsedRef = useRef(0)
+
   const [currentMode, setCurrentMode] = useState('clock')
   const [time, setTime] = useState(new Date())
-  const [elapsed, setElapsed] = useState(0)
+  const [displayedElapsed, setDisplayedElapsed] = useState(0)  // ← only for display
   const [isRunning, setIsRunning] = useState(false)
   const [lapTimes, setLapTimes] = useState([])
   const [isPulsing, setIsPulsing] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
   const [stats, setStats] = useState({
     steps: 8432,
     calories: 420,
     heartRate: 72,
   })
 
-  const handleStart = useCallback(() => setIsRunning(true), [])
-  const handleStop  = useCallback(() => setIsRunning(false), [])
-  const handleReset = useCallback(() => {
-    setIsRunning(false); setElapsed(0); setLapTimes([])
+  // ← handleStart stores interval ID in ref, ticks via elapsedRef
+  const handleStart = useCallback(() => {
+    setIsRunning(true)
+    intervalRef.current = setInterval(() => {
+      elapsedRef.current += 100
+      setDisplayedElapsed(elapsedRef.current)
+    }, 100)
   }, [])
+
+  // ← handleStop clears the interval via ref
+  const handleStop = useCallback(() => {
+    setIsRunning(false)
+    clearInterval(intervalRef.current)
+    intervalRef.current = null
+  }, [])
+
+  // ← handleReset clears both refs and resets display state
+  const handleReset = useCallback(() => {
+    clearInterval(intervalRef.current)
+    intervalRef.current = null
+    elapsedRef.current = 0
+    setDisplayedElapsed(0)
+    setIsRunning(false)
+    setLapTimes([])
+  }, [])
+
+  // ← handleLap reads from elapsedRef directly, no dependency needed
   const handleLap = useCallback(() => {
-    setLapTimes(prev => [...prev, formatTime(elapsed)])
-  }, [elapsed])
+    setLapTimes(prev => [...prev, formatTime(elapsedRef.current)])
+  }, [])
 
   const handleSyncStats = () => {
+    setIsAnimating(true)
     setStats({
       steps:     Math.floor(Math.random() * 7001) + 5000,
       calories:  Math.floor(Math.random() * 601)  + 200,
       heartRate: Math.floor(Math.random() * 53)   + 58,
     })
+    setTimeout(() => setIsAnimating(false), 300)
   }
 
   useEffect(() => {
@@ -47,11 +76,7 @@ function App() {
     return () => clearInterval(id)
   }, [])
 
-  useEffect(() => {
-    if (!isRunning) return
-    const id = setInterval(() => setElapsed(prev => prev + 1), 10)
-    return () => clearInterval(id)
-  }, [isRunning])
+  // ← old stopwatch useEffect removed — interval is now managed in handleStart/handleStop
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -68,7 +93,7 @@ function App() {
       <WatchFrame>
         {currentMode === 'stopwatch' && (
           <StopwatchWidget
-            currentTime={formatTime(elapsed)}
+            currentTime={formatTime(displayedElapsed)}
             isRunning={isRunning}
             lapTimes={lapTimes}
             onStart={handleStart}
@@ -88,12 +113,11 @@ function App() {
         )}
 
         <div className="flex gap-4">
-          <StatRing label="Steps" value={stats.steps} target="10,000" color="border-green-500" />
-          <StatRing label="Cal" value={stats.calories} target="600" color="border-orange-500" />
-          <StatRing label="BPM" value={stats.heartRate} target="120" color="border-red-500" isPulsing={isPulsing} />
+          <StatRing label="Steps" value={stats.steps} target="10,000" color="border-green-500" isAnimating={isAnimating} />
+          <StatRing label="Cal" value={stats.calories} target="600" color="border-orange-500" isAnimating={isAnimating} />
+          <StatRing label="BPM" value={stats.heartRate} target="120" color="border-red-500" isPulsing={isPulsing} isAnimating={isAnimating} />
         </div>
 
-        {/* ← ModeToggle and Sync Stats side by side */}
         <div className="flex gap-2 items-center justify-center">
           <ModeToggle currentMode={currentMode} onModeChange={setCurrentMode} />
           <button

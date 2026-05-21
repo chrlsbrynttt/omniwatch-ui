@@ -5,7 +5,7 @@ function WatchFrame({ children }) {
       style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d1f36)', border: '2px solid #2a4a6b' }}
     >
       <div
-        className="flex flex-col items-center justify-center gap-4 p-4 w-[270px] h-[290px] rounded-[2.5rem]"
+        className="flex flex-col items-center justify-center gap-6 p-5 w-[270px] h-[290px] rounded-[2.5rem]"
         style={{ background: '#070f1a' }}
       >
         {children}
