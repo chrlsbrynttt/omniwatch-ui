@@ -49,7 +49,7 @@ function App() {
 
   useEffect(() => {
     if (!isRunning) return
-    const id = setInterval(() => setElapsed(prev => prev + 10), 100)
+    const id = setInterval(() => setElapsed(prev => prev + 1), 10)
     return () => clearInterval(id)
   }, [isRunning])
 
