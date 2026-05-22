@@ -8,7 +8,7 @@ function StopwatchWidget({ currentTime, isRunning, lapTimes, onStart, onStop, on
       <span className={`text-3xl font-bold leading-none ${isRunning ? 'text-green-400' : 'text-white'}`}>
         {currentTime}
       </span>
-      <div className="flex gap-1 flex-wrap justify-center max-h-24 overflow-y-auto w-full text-xs">
+      <div className="flex flex-col items-center gap-1.5 max-h-24 overflow-y-auto w-full text-xs">
         {lapTimes.length > 0 ? (
           lapTimes.map((lap, index) => (
             <div key={index} className="bg-gray-800 rounded px-2 py-1 text-gray-300 whitespace-nowrap">
