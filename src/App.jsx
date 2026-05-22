@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useReducer } from 'react'
 import WatchFrame from './components/WatchFrame'
 import TimeDisplay from './components/TimeDisplay'
 import StopwatchWidget from './components/StopwatchWidget'
 import StatRing from './components/StatRing'
 import ModeToggle from './components/ModeToggle'
+import { stopwatchReducer, initialState } from './stopwatchReducer'
+import { useWatch } from './context/WatchContext'
 
 function formatTime(ms) {
   const min = Math.floor(ms / 60000)
@@ -13,15 +15,16 @@ function formatTime(ms) {
 }
 
 function App() {
-  // ← two refs: one for the interval ID, one for the true elapsed value
+  const { timeFormat } = useWatch()
+  
   const intervalRef = useRef(null)
   const elapsedRef = useRef(0)
 
+  // ← one useReducer replaces isRunning, elapsed, lapTimes useState calls
+  const [state, dispatch] = useReducer(stopwatchReducer, initialState)
+
   const [currentMode, setCurrentMode] = useState('clock')
   const [time, setTime] = useState(new Date())
-  const [displayedElapsed, setDisplayedElapsed] = useState(0)  // ← only for display
-  const [isRunning, setIsRunning] = useState(false)
-  const [lapTimes, setLapTimes] = useState([])
   const [isPulsing, setIsPulsing] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [stats, setStats] = useState({
@@ -30,35 +33,30 @@ function App() {
     heartRate: 72,
   })
 
-  // ← handleStart stores interval ID in ref, ticks via elapsedRef
+  // ← each handler dispatches a single action
   const handleStart = useCallback(() => {
-    setIsRunning(true)
+    dispatch({ type: 'START' })
     intervalRef.current = setInterval(() => {
       elapsedRef.current += 100
-      setDisplayedElapsed(elapsedRef.current)
+      dispatch({ type: 'TICK' })
     }, 100)
   }, [])
 
-  // ← handleStop clears the interval via ref
   const handleStop = useCallback(() => {
-    setIsRunning(false)
+    dispatch({ type: 'STOP' })
     clearInterval(intervalRef.current)
     intervalRef.current = null
   }, [])
 
-  // ← handleReset clears both refs and resets display state
   const handleReset = useCallback(() => {
+    dispatch({ type: 'RESET' })
     clearInterval(intervalRef.current)
     intervalRef.current = null
     elapsedRef.current = 0
-    setDisplayedElapsed(0)
-    setIsRunning(false)
-    setLapTimes([])
   }, [])
 
-  // ← handleLap reads from elapsedRef directly, no dependency needed
   const handleLap = useCallback(() => {
-    setLapTimes(prev => [...prev, formatTime(elapsedRef.current)])
+    dispatch({ type: 'LAP', value: formatTime(elapsedRef.current) })
   }, [])
 
   const handleSyncStats = () => {
@@ -76,8 +74,6 @@ function App() {
     return () => clearInterval(id)
   }, [])
 
-  // ← old stopwatch useEffect removed — interval is now managed in handleStart/handleStop
-
   useEffect(() => {
     const id = setInterval(() => {
       const delta = Math.floor(Math.random() * 10) - 5
@@ -93,9 +89,9 @@ function App() {
       <WatchFrame>
         {currentMode === 'stopwatch' && (
           <StopwatchWidget
-            currentTime={formatTime(displayedElapsed)}
-            isRunning={isRunning}
-            lapTimes={lapTimes}
+            currentTime={formatTime(state.elapsed)}
+            isRunning={state.isRunning}
+            lapTimes={state.lapTimes}
             onStart={handleStart}
             onStop={handleStop}
             onReset={handleReset}
@@ -108,7 +104,7 @@ function App() {
             hours={time.getHours() % 12 || 12}
             minutes={String(time.getMinutes()).padStart(2, '0')}
             seconds={String(time.getSeconds()).padStart(2, '0')}
-            format="12"
+            format={timeFormat}
           />
         )}
 

@@ -1,8 +1,13 @@
+import { useWatch } from '../context/WatchContext'
+
 function TimeDisplay({ hours, minutes, seconds, format }) {
-  const displayHours = format === '12'
+  const { timeFormat } = useWatch()
+  const effectiveFormat = format || timeFormat
+  
+  const displayHours = effectiveFormat === '12'
     ? (parseInt(hours) % 12 || 12).toString().padStart(2, '0')
     : hours
-  const period = format === '12'
+  const period = effectiveFormat === '12'
     ? parseInt(hours) >= 12 ? 'PM' : 'AM'
     : null
 
