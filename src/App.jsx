@@ -1,11 +1,18 @@
-import { useState, useEffect, useCallback, useRef, useReducer } from 'react'
+import { useState, useEffect } from 'react'
 import WatchFrame from './components/WatchFrame'
 import TimeDisplay from './components/TimeDisplay'
 import StopwatchWidget from './components/StopwatchWidget'
 import StatRing from './components/StatRing'
 import ModeToggle from './components/ModeToggle'
-import { stopwatchReducer, initialState } from './stopwatchReducer'
+import { useStopwatch } from './hooks/useStopwatch'
+import { useStats } from './hooks/useStats'
 import { useWatch } from './context/WatchContext'
+
+const defaultStats = {
+  steps: 8432,
+  calories: 420,
+  heartRate: 72,
+}
 
 function formatTime(ms) {
   const min = Math.floor(ms / 60000)
@@ -16,58 +23,12 @@ function formatTime(ms) {
 
 function App() {
   const { timeFormat } = useWatch()
-  
-  const intervalRef = useRef(null)
-  const elapsedRef = useRef(0)
-
-  // ← one useReducer replaces isRunning, elapsed, lapTimes useState calls
-  const [state, dispatch] = useReducer(stopwatchReducer, initialState)
+  const { elapsed, isRunning, lapTimes, start, stop, reset, lap } = useStopwatch()
+  const { stats, isSyncing, syncError, syncStats } = useStats(defaultStats)
 
   const [currentMode, setCurrentMode] = useState('clock')
   const [time, setTime] = useState(new Date())
   const [isPulsing, setIsPulsing] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [stats, setStats] = useState({
-    steps: 8432,
-    calories: 420,
-    heartRate: 72,
-  })
-
-  // ← each handler dispatches a single action
-  const handleStart = useCallback(() => {
-    dispatch({ type: 'START' })
-    intervalRef.current = setInterval(() => {
-      elapsedRef.current += 100
-      dispatch({ type: 'TICK' })
-    }, 100)
-  }, [])
-
-  const handleStop = useCallback(() => {
-    dispatch({ type: 'STOP' })
-    clearInterval(intervalRef.current)
-    intervalRef.current = null
-  }, [])
-
-  const handleReset = useCallback(() => {
-    dispatch({ type: 'RESET' })
-    clearInterval(intervalRef.current)
-    intervalRef.current = null
-    elapsedRef.current = 0
-  }, [])
-
-  const handleLap = useCallback(() => {
-    dispatch({ type: 'LAP', value: formatTime(elapsedRef.current) })
-  }, [])
-
-  const handleSyncStats = () => {
-    setIsAnimating(true)
-    setStats({
-      steps:     Math.floor(Math.random() * 7001) + 5000,
-      calories:  Math.floor(Math.random() * 601)  + 200,
-      heartRate: Math.floor(Math.random() * 53)   + 58,
-    })
-    setTimeout(() => setIsAnimating(false), 300)
-  }
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000)
@@ -76,8 +37,6 @@ function App() {
 
   useEffect(() => {
     const id = setInterval(() => {
-      const delta = Math.floor(Math.random() * 10) - 5
-      setStats(prev => ({ ...prev, heartRate: prev.heartRate + delta }))
       setIsPulsing(true)
       setTimeout(() => setIsPulsing(false), 600)
     }, 3000)
@@ -89,13 +48,13 @@ function App() {
       <WatchFrame>
         {currentMode === 'stopwatch' && (
           <StopwatchWidget
-            currentTime={formatTime(state.elapsed)}
-            isRunning={state.isRunning}
-            lapTimes={state.lapTimes}
-            onStart={handleStart}
-            onStop={handleStop}
-            onReset={handleReset}
-            onLap={handleLap}
+            currentTime={formatTime(elapsed)}
+            isRunning={isRunning}
+            lapTimes={lapTimes}
+            onStart={start}
+            onStop={stop}
+            onReset={reset}
+            onLap={lap}
           />
         )}
 
@@ -109,18 +68,19 @@ function App() {
         )}
 
         <div className="flex gap-4">
-          <StatRing label="Steps" value={stats.steps} target="10,000" color="border-green-500" isAnimating={isAnimating} />
-          <StatRing label="Cal" value={stats.calories} target="600" color="border-orange-500" isAnimating={isAnimating} />
-          <StatRing label="BPM" value={stats.heartRate} target="120" color="border-red-500" isPulsing={isPulsing} isAnimating={isAnimating} />
+          <StatRing label="Steps" value={stats.steps} target="10,000" color="border-green-500" isAnimating={isSyncing} />
+          <StatRing label="Cal" value={stats.calories} target="600" color="border-orange-500" isAnimating={isSyncing} />
+          <StatRing label="BPM" value={stats.heartRate} target="120" color="border-red-500" isPulsing={isPulsing} isAnimating={isSyncing} />
         </div>
 
         <div className="flex gap-2 items-center justify-center">
           <ModeToggle currentMode={currentMode} onModeChange={setCurrentMode} />
           <button
-            onClick={handleSyncStats}
-            className="bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all duration-150 text-white text-xs font-medium px-3 py-1.5 rounded-full"
+            onClick={syncStats}
+            disabled={isSyncing}
+            className="bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all duration-150 text-white text-xs font-medium px-3 py-1.5 rounded-full disabled:opacity-50"
           >
-            ↺ Sync Stats
+            {syncError ? '✕ Failed' : isSyncing ? '⟳ Syncing...' : '↺ Sync Stats'}
           </button>
         </div>
       </WatchFrame>
