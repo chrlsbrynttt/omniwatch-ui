@@ -1,8 +1,13 @@
+import { useWatch } from '../context/WatchContext'
+
 function TimeDisplay({ hours, minutes, seconds, format }) {
-  const displayHours = format === '12'
+  const { timeFormat } = useWatch()
+  const effectiveFormat = format || timeFormat
+  
+  const displayHours = effectiveFormat === '12'
     ? (parseInt(hours) % 12 || 12).toString().padStart(2, '0')
     : hours
-  const period = format === '12'
+  const period = effectiveFormat === '12'
     ? parseInt(hours) >= 12 ? 'PM' : 'AM'
     : null
 
@@ -34,19 +39,19 @@ function TimeDisplay({ hours, minutes, seconds, format }) {
         )}
       </div>
 
+      {/* seconds */}
+      <div
+        className="flex items-center gap-1 bg-blue-950 px-2 py-0.5 rounded-full"
+      >
+        <span className="text-blue-400 text-[9px] tracking-widest uppercase">sec</span>
+        <span className="text-white text-[10px] font-bold" style={{ fontFamily: "'Fredoka One', cursive" }}>{seconds}</span>
+      </div>
+
       {/* date + year */}
       <div className="flex items-center gap-1.5 text-[10px]">
         <span className="text-gray-400">{date}</span>
         <span className="text-blue-900">|</span>
         <span className="text-gray-500">{year}</span>
-      </div>
-
-      {/* seconds */}
-      <div
-        className="flex items-center gap-1 bg-blue-950 px-2 py-0.5 rounded-full mt-0.5"
-      >
-        <span className="text-blue-400 text-[9px] tracking-widest uppercase">sec</span>
-        <span className="text-white text-[10px] font-bold" style={{ fontFamily: "'Fredoka One', cursive" }}>{seconds}</span>
       </div>
     </div>
   )
